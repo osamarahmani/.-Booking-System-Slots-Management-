@@ -15,7 +15,7 @@ from email.mime.multipart import MIMEMultipart
 from collections import defaultdict
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+CORS(app, origins=["https://booking-system-slots-management-atbfe6fqc.vercel.app"], supports_credentials=True)
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 SECRET_KEY = os.environ.get("SECRET_KEY", "medibook-super-secret-2025")
