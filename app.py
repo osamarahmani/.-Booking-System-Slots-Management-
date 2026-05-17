@@ -177,6 +177,35 @@ def login():
     return jsonify({"message": "Login successful!", "token": token,
                     "user": {"id": str(user["_id"]), "name": user["name"],
                              "email": email, "role": user["role"]}})
+@app.route("/auth/demo", methods=["POST"])
+def demo_login():
+    """One-click guest access for portfolio visitors."""
+    DEMO_EMAIL = "demo@medibook.app"
+    DEMO_NAME  = "Demo User"
+    DEMO_ROLE  = "user"
+
+    # Create demo user if it doesn't exist
+    if not users_col.find_one({"email": DEMO_EMAIL}):
+        hashed = bcrypt.hashpw(b"demo1234", bcrypt.gensalt()).decode()
+        users_col.insert_one({
+            "name": DEMO_NAME, "email": DEMO_EMAIL,
+            "password": hashed, "role": DEMO_ROLE,
+            "created_at": now_ist()
+        })
+
+    user = users_col.find_one({"email": DEMO_EMAIL})
+    token = jwt.encode({
+        "user_id": str(user["_id"]), "email": DEMO_EMAIL,
+        "role": DEMO_ROLE, "name": DEMO_NAME,
+        "exp": datetime.utcnow() + timedelta(hours=2)  # short-lived for safety
+    }, SECRET_KEY, algorithm="HS256")
+
+    return jsonify({
+        "message": "Welcome! You're in demo mode.",
+        "token": token,
+        "user": {"id": str(user["_id"]), "name": DEMO_NAME,
+                 "email": DEMO_EMAIL, "role": DEMO_ROLE}
+    })
 
 
 @app.route("/auth/me", methods=["GET"])

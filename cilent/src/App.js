@@ -98,7 +98,6 @@ function BarChart({ data, xKey, yKey, color = P.teal, height = 200, label = "" }
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", height:"auto", overflow:"visible" }}>
-      {/* Y axis lines */}
       {[0,25,50,75,100].map(p => {
         const y = pad.t + (H - pad.t - pad.b) * (1 - p / 100);
         return (
@@ -110,7 +109,6 @@ function BarChart({ data, xKey, yKey, color = P.teal, height = 200, label = "" }
           </g>
         );
       })}
-      {/* Bars */}
       {data.map((d, i) => {
         const x    = pad.l + i * ((W - pad.l - pad.r) / data.length) + 3;
         const val  = d[yKey] || 0;
@@ -164,7 +162,6 @@ function LineChart({ data, xKey, series, height = 220 }) {
           </g>
         );
       })}
-      {/* X labels — show every N-th to avoid overlap */}
       {data.map((d, i) => {
         const skip = Math.ceil(data.length / 10);
         if (i % skip !== 0 && i !== data.length - 1) return null;
@@ -246,10 +243,23 @@ const StatCard = ({ label, value, icon, color, sub }) => (
 //  LOGIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 function AuthPage({ onAuth }) {
-  const [mode, setMode]     = useState("login");
-  const [form, setForm]     = useState({ name:"", email:"", password:"", role:"user" });
-  const [error, setError]   = useState("");
+  const [mode, setMode]       = useState("login");
+  const [form, setForm]       = useState({ name:"", email:"", password:"", role:"user" });
+  const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
+
+  // ── NEW: demo login ────────────────────────────────────────────────────────
+  const demoLogin = async () => {
+    setError(""); setLoading(true);
+    try {
+      const res  = await fetch(API + "/auth/demo", { method: "POST", headers: { "Content-Type": "application/json" } });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Demo login failed"); return; }
+      saveAuth(data.token, data.user); onAuth(data.user);
+    } catch { setError("Cannot connect to server."); }
+    finally { setLoading(false); }
+  };
+  // ──────────────────────────────────────────────────────────────────────────
 
   const submit = async () => {
     setError(""); setLoading(true);
@@ -294,9 +304,34 @@ function AuthPage({ onAuth }) {
             {loading ? "Please wait…" : mode==="login" ? "Sign In" : "Create Account"}
           </button>
         </div>
-        <p style={{ textAlign:"center",fontSize:12,color:P.muted,marginTop:20,marginBottom:0 }}>
-          Demo: <b>admin@medibook.com</b> / <b>admin123</b>
-        </p>
+
+        {/* ── DEMO LOGIN SECTION ── */}
+        <div style={{ marginTop:20 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+            <div style={{ flex:1, height:"1px", background:P.border }} />
+            <span style={{ fontSize:12, color:P.muted, whiteSpace:"nowrap" }}>or try without signing up</span>
+            <div style={{ flex:1, height:"1px", background:P.border }} />
+          </div>
+          <button
+            onClick={demoLogin}
+            disabled={loading}
+            style={{
+              width:"100%", padding:"11px", border:`1.5px solid ${P.teal}`,
+              borderRadius:10, background:"transparent", color:P.teal,
+              fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"inherit",
+              transition:"all .2s",
+            }}
+            onMouseEnter={e=>{ e.currentTarget.style.background=P.teal; e.currentTarget.style.color="#fff"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.background="transparent"; e.currentTarget.style.color=P.teal; }}
+          >
+            🚀 Try Demo — No Sign Up Required
+          </button>
+          <p style={{ textAlign:"center", fontSize:11, color:P.muted, marginTop:10, marginBottom:0 }}>
+            Admin access: <b>admin@medibook.com</b> / <b>admin123</b>
+          </p>
+        </div>
+        {/* ── END DEMO LOGIN SECTION ── */}
+
       </div>
     </div>
   );
@@ -417,13 +452,10 @@ function AnalyticsPage({ notify }) {
 
       {/* Row 2 */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:20 }}>
-        {/* Weekly trend */}
         <div style={card({ marginBottom:0 })}>
           <h3 style={{ margin:"0 0 18px", fontSize:16, fontWeight:700 }}>Bookings by Day of Week</h3>
           <BarChart data={weekDay} xKey="day" yKey="count" color={P.info} height={180} />
         </div>
-
-        {/* By specialization donut */}
         <div style={card({ marginBottom:0 })}>
           <h3 style={{ margin:"0 0 18px", fontSize:16, fontWeight:700 }}>By Specialization</h3>
           <DonutChart data={bySpec.slice(0,7)} labelKey="specialization" valueKey="count" size={160} />
@@ -568,7 +600,6 @@ function DoctorsPage({ notify }) {
         <button onClick={()=>{setShowAdd(true);setEditDoc(null);setForm({name:"",email:"",specialization:"",phone:"",bio:"",experience:"",fees:"",qualification:"",avatar_color:"#0d9488"});}} style={btn("primary")}>+ Add Doctor</button>
       </div>
 
-      {/* Inline Add/Edit form */}
       {showAdd && (
         <div style={card()}>
           <h3 style={{ margin:"0 0 18px", fontSize:16, fontWeight:700 }}>{editDoc ? "✏️ Edit Doctor" : "➕ Add New Doctor"}</h3>
@@ -576,7 +607,6 @@ function DoctorsPage({ notify }) {
         </div>
       )}
 
-      {/* Filters */}
       <div style={{...card(),padding:"16px 22px",marginBottom:16}}>
         <div style={{ display:"flex", gap:12, flexWrap:"wrap", alignItems:"center" }}>
           <input style={{...inp,maxWidth:220}} placeholder="Search name / specialization…" value={search} onChange={e=>setSearch(e.target.value)} />
@@ -589,13 +619,11 @@ function DoctorsPage({ notify }) {
         </div>
       </div>
 
-      {/* Doctor cards grid */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))", gap:18 }}>
         {doctors.map(doc => (
           <div key={doc._id} style={{ background:"#fff", borderRadius:18, boxShadow:"0 2px 16px rgba(0,0,0,.06)", overflow:"hidden", transition:"transform .2s,box-shadow .2s" }}
             onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 28px rgba(0,0,0,.1)";}}
             onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="0 2px 16px rgba(0,0,0,.06)";}}>
-            {/* Color strip */}
             <div style={{ height:6, background:doc.avatar_color||P.teal }} />
             <div style={{ padding:"20px 22px" }}>
               <div style={{ display:"flex", alignItems:"flex-start", gap:14, marginBottom:14 }}>
@@ -606,8 +634,6 @@ function DoctorsPage({ notify }) {
                   {doc.qualification && <div style={{ fontSize:12, color:P.muted, marginTop:4 }}>{doc.qualification}</div>}
                 </div>
               </div>
-
-              {/* Quick stats */}
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
                 {[
                   { label:"Experience", value: doc.experience ? `${doc.experience}y` : "—" },
@@ -620,9 +646,7 @@ function DoctorsPage({ notify }) {
                   </div>
                 ))}
               </div>
-
               {doc.bio && <p style={{ fontSize:13, color:P.muted, margin:"0 0 14px", lineHeight:1.5, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>{doc.bio}</p>}
-
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={()=>setViewDoc(doc)} style={{...btn("ghost"),flex:1,padding:"8px",fontSize:12}}>View Profile</button>
                 <button onClick={()=>openEdit(doc)} style={{...btn("primary"),flex:1,padding:"8px",fontSize:12}}>Edit</button>
@@ -639,7 +663,6 @@ function DoctorsPage({ notify }) {
         )}
       </div>
 
-      {/* Doctor profile modal */}
       {viewDoc && (
         <Modal title={`Dr. ${viewDoc.name}`} onClose={()=>setViewDoc(null)} w={520}>
           <div style={{ display:"flex", gap:18, marginBottom:20, alignItems:"center" }}>
@@ -667,7 +690,6 @@ function DoctorsPage({ notify }) {
             ))}
           </div>
           {viewDoc.bio && <p style={{ fontSize:14,color:P.muted,lineHeight:1.6,margin:"0 0 14px" }}>{viewDoc.bio}</p>}
-
           {viewDoc.upcoming_slots?.length > 0 && (
             <div>
               <div style={{ fontSize:13,fontWeight:700,marginBottom:8 }}>Upcoming Available Slots</div>
@@ -695,7 +717,7 @@ function AdminDashboard({ user, onLogout, notify }) {
   const [bookings, setBookings] = useState([]);
   const [users, setUsers]       = useState([]);
   const [doctors, setDoctors]   = useState([]);
-  const [slotFilter, setSlotFilter]     = useState({ date:"", doctor_id:"", available_only:"" });
+  const [slotFilter, setSlotFilter]       = useState({ date:"", doctor_id:"", available_only:"" });
   const [bookingFilter, setBookingFilter] = useState({ search:"", status:"", date:"", doctor_id:"" });
   const [slotForm, setSlotForm]   = useState({ start_time:"", end_time:"", date:"", doctor_id:"" });
   const [bulkForm, setBulkForm]   = useState({ doctor_id:"", from_date:"", to_date:"", skip_weekends:false, times:"09:00 AM,09:30 AM\n09:30 AM,10:00 AM" });
@@ -775,7 +797,6 @@ function AdminDashboard({ user, onLogout, notify }) {
             <h2 style={{ margin:0, fontSize:24, fontWeight:800, color:P.text }}>Manage Slots</h2>
             <button onClick={()=>setShowBulk(true)} style={btn("primary")}>🔁 Bulk / Recurring</button>
           </div>
-
           <div style={card()}>
             <h3 style={{ margin:"0 0 16px", fontSize:15, fontWeight:700 }}>➕ Add Single Slot</h3>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:12 }}>
@@ -789,8 +810,6 @@ function AdminDashboard({ user, onLogout, notify }) {
             </div>
             <button onClick={addSlot} style={{...btn("primary"),marginTop:14}}>Add Slot</button>
           </div>
-
-          {/* Filter row */}
           <div style={{...card(),padding:"16px 22px"}}>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap", alignItems:"center" }}>
               <span style={{ fontWeight:600,fontSize:14 }}>🔍</span>
@@ -805,7 +824,6 @@ function AdminDashboard({ user, onLogout, notify }) {
               <button onClick={()=>setSlotFilter({date:"",doctor_id:"",available_only:""})} style={btn("ghost")}>Clear</button>
             </div>
           </div>
-
           <div style={card()}>
             <h3 style={{ margin:"0 0 14px", fontSize:15, fontWeight:700 }}>Slots ({slots.length})</h3>
             <table style={{ width:"100%", borderCollapse:"collapse", fontSize:14 }}>
@@ -969,15 +987,15 @@ function AdminDashboard({ user, onLogout, notify }) {
 //  USER / PATIENT DASHBOARD
 // ══════════════════════════════════════════════════════════════════════════════
 function UserDashboard({ user, onLogout, notify }) {
-  const [tab, setTab]             = useState("book");
-  const [slots, setSlots]         = useState([]);
+  const [tab, setTab]               = useState("book");
+  const [slots, setSlots]           = useState([]);
   const [myBookings, setMyBookings] = useState([]);
-  const [doctors, setDoctors]     = useState([]);
-  const [specs, setSpecs]         = useState([]);
-  const [filter, setFilter]       = useState({ date:"", doctor_id:"", specialization:"" });
+  const [doctors, setDoctors]       = useState([]);
+  const [specs, setSpecs]           = useState([]);
+  const [filter, setFilter]         = useState({ date:"", doctor_id:"", specialization:"" });
   const [reschedModal, setReschedModal] = useState(null);
-  const [newSlotId, setNewSlotId] = useState("");
-  const [reasons, setReasons]     = useState({});
+  const [newSlotId, setNewSlotId]   = useState("");
+  const [reasons, setReasons]       = useState({});
   const h = authH();
 
   const load = useCallback(() => {
@@ -1008,7 +1026,6 @@ function UserDashboard({ user, onLogout, notify }) {
       .then(r=>r.json()).then(d=>{ if(d.error) return notify(d.error,"error"); notify(d.message); setReschedModal(null); setNewSlotId(""); load(); });
   };
 
-  // Filter slots by selected specialization (client-side on doctor list)
   const filteredDoctors = filter.specialization
     ? doctors.filter(d=>d.specialization===filter.specialization)
     : doctors;
